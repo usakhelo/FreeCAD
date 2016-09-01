@@ -998,7 +998,8 @@ bool TaskDlgDatumParameters::accept()
         Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.recompute()");
         if (!DatumView->getObject()->isValid())
             throw Base::Exception(DatumView->getObject()->getStatusString());
-        Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().resetEdit()");
+        parameter->blockConnection(true);
+        Gui::Command::doCommand(Gui::Command::Gui, "Gui.activeDocument().resetEdit()");
         Gui::Command::commitCommand();
 
         //we need to add the copied features to the body after the command action, as otherwise freecad crashs unexplainable
@@ -1021,9 +1022,9 @@ bool TaskDlgDatumParameters::reject()
 {
     // roll back the done things
     Gui::Command::abortCommand();
+    parameter->blockConnection(true);
     Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().resetEdit()");
     Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.recompute()");
-
     return true;
 }
 

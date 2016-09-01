@@ -90,7 +90,7 @@ protected:
 private:
     void resetViewMode();
     void objectDeleted(const Gui::ViewProviderDocumentObject&);
-    void onSelectionChanged(const Gui::SelectionChanges& msg);
+    void onSelectionChanged(const Gui::SelectionChanges& msg) override;
     void updateReferencesUI();
 
     /**
