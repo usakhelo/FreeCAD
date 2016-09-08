@@ -68,6 +68,7 @@
 #include <Mod/PartDesign/App/DatumPlane.h>
 #include <Mod/PartDesign/App/Body.h>
 #include <Mod/PartDesign/App/DatumCS.h>
+#include <Mod/PartDesign/App/Feature.h>
 
 #include "TaskDatumParameters.h"
 #include "ViewProviderBody.h"
@@ -293,20 +294,34 @@ bool ViewProviderDatum::doubleClicked(void)
         }
         activeBody = datumBody;
     }
-    // TODO check if this feature belongs to the active body
-    //      and if not set the body it belongs to as active (2015-09-08, Fat-Zer)
     if (activeBody != NULL) {
         // TODO Rewrite this (2015-09-08, Fat-Zer)
         // Drop into insert mode so that the user doesn't see all the geometry that comes later in the tree
         // Also, this way the user won't be tempted to use future geometry as external references for the sketch
-        auto supportobj = pcDatum->Support.getValue();
-        Gui::Selection().clearSelection();
-        Gui::Selection().addSelection(supportobj->getDocument()->getName(), supportobj->getNameInDocument());
-        oldTip = activeBody->Tip.getValue();
-        if (oldTip != this->pcObject)
-            Gui::Command::doCommand(Gui::Command::Gui,"FreeCADGui.runCommand('PartDesign_MoveTip')");
-        else
-            oldTip = NULL;
+        auto newTip = pcDatum->Support.getValue();
+        
+        const std::vector<App::DocumentObject*> depFeatures = pcDatum->getInList();
+        auto depIt = std::find_if(depFeatures.begin(), depFeatures.end(), 
+            [](App::DocumentObject* feat) {return PartDesign::Body::isSolidFeature(feat); });
+        if (depIt != depFeatures.end()) {
+            auto depFeat = static_cast<PartDesign::Feature*>(*depIt)->getBaseObject(/* silent = */ true);
+            if (depFeat) {
+                //need to decide which to switch to if both depFeat and newTip are not null
+                Gui::Application::Instance->hideViewProvider((*depIt));
+                newTip = static_cast<App::DocumentObject*>(depFeat);
+            }
+        }
+
+        if (newTip && PartDesign::Body::isSolidFeature(newTip)) {
+            oldTip = activeBody->Tip.getValue();
+            if (oldTip != newTip) {
+                Gui::Selection().clearSelection();
+                Gui::Selection().addSelection(newTip->getDocument()->getName(), newTip->getNameInDocument());
+                Gui::Command::doCommand(Gui::Command::Gui, "FreeCADGui.runCommand('PartDesign_MoveTip')");
+            }
+            else
+                oldTip = NULL;
+        }
     } else {
         oldTip = NULL;
     }
@@ -326,10 +341,12 @@ void ViewProviderDatum::unsetEdit(int ModNum)
         PartDesign::Body* activeBody = Gui::Application::Instance->activeView()->getActiveObject<PartDesign::Body*>(PDBODYKEY);
 
         if ((activeBody != NULL) && (oldTip != NULL)) {
-            Gui::Selection().clearSelection();
-            Gui::Selection().addSelection(oldTip->getDocument()->getName(), oldTip->getNameInDocument());
-            Gui::Command::doCommand(Gui::Command::Gui,"FreeCADGui.runCommand('PartDesign_MoveTip')");
-            oldTip = NULL;
+            if (oldTip != activeBody->Tip.getValue()) {
+                Gui::Selection().clearSelection();
+                Gui::Selection().addSelection(oldTip->getDocument()->getName(), oldTip->getNameInDocument());
+                Gui::Command::doCommand(Gui::Command::Gui,"FreeCADGui.runCommand('PartDesign_MoveTip')");
+                oldTip = NULL;
+            }
         } else {
             oldTip = NULL;
         }
