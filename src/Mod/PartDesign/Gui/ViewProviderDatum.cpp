@@ -294,11 +294,10 @@ bool ViewProviderDatum::doubleClicked(void)
         }
         activeBody = datumBody;
     }
-    oldTip = NULL;
     if (activeBody != NULL) {
-        App::DocumentObject* newTip;
+        App::DocumentObject* newTip = nullptr;
         const std::vector<App::DocumentObject*> depFeatures = pcDatum->getInList();
-        //set newtip to the base of the solid in the inlist, if found any
+        //set newtip to the base of the solid from the inlist, if found any
         for (auto* depFeat : depFeatures) {
             if (PartDesign::Body::isSolidFeature(depFeat)) {
                 auto baseFeat = static_cast<PartDesign::Feature*>(depFeat)->getBaseObject(/* silent = */ true);
@@ -311,9 +310,10 @@ bool ViewProviderDatum::doubleClicked(void)
                 }
             }
         }
-        //if no features found in InList then try to use current support
-        if (!newTip || !PartDesign::Body::isSolidFeature(newTip))
+        //if no features found in the InList try to use current support
+        if (!newTip) {
             newTip = pcDatum->Support.getValue();
+        }
 
         if (newTip && PartDesign::Body::isSolidFeature(newTip)) {
             oldTip = activeBody->Tip.getValue();
