@@ -294,23 +294,26 @@ bool ViewProviderDatum::doubleClicked(void)
         }
         activeBody = datumBody;
     }
+    oldTip = NULL;
     if (activeBody != NULL) {
-        // TODO Rewrite this (2015-09-08, Fat-Zer)
-        // Drop into insert mode so that the user doesn't see all the geometry that comes later in the tree
-        // Also, this way the user won't be tempted to use future geometry as external references for the sketch
-        auto newTip = pcDatum->Support.getValue();
-        
+        App::DocumentObject* newTip;
         const std::vector<App::DocumentObject*> depFeatures = pcDatum->getInList();
-        auto depIt = std::find_if(depFeatures.begin(), depFeatures.end(), 
-            [](App::DocumentObject* feat) {return PartDesign::Body::isSolidFeature(feat); });
-        if (depIt != depFeatures.end()) {
-            auto depFeat = static_cast<PartDesign::Feature*>(*depIt)->getBaseObject(/* silent = */ true);
-            if (depFeat) {
-                //need to decide which to switch to if both depFeat and newTip are not null
-                Gui::Application::Instance->hideViewProvider((*depIt));
-                newTip = static_cast<App::DocumentObject*>(depFeat);
+        //set newtip to the base of the solid in the inlist, if found any
+        for (auto* depFeat : depFeatures) {
+            if (PartDesign::Body::isSolidFeature(depFeat)) {
+                auto baseFeat = static_cast<PartDesign::Feature*>(depFeat)->getBaseObject(/* silent = */ true);
+                if (baseFeat && PartDesign::Body::isSolidFeature(baseFeat)) {
+                    auto baseIt = std::find(depFeatures.begin(), depFeatures.end(), baseFeat);
+                    if (baseIt == depFeatures.end()) {
+                        newTip = baseFeat;
+                        break;
+                    }
+                }
             }
         }
+        //if no features found in InList then try to use current support
+        if (!newTip || !PartDesign::Body::isSolidFeature(newTip))
+            newTip = pcDatum->Support.getValue();
 
         if (newTip && PartDesign::Body::isSolidFeature(newTip)) {
             oldTip = activeBody->Tip.getValue();
@@ -318,10 +321,10 @@ bool ViewProviderDatum::doubleClicked(void)
                 Gui::Selection().clearSelection();
                 Gui::Selection().addSelection(newTip->getDocument()->getName(), newTip->getNameInDocument());
                 Gui::Command::doCommand(Gui::Command::Gui, "FreeCADGui.runCommand('PartDesign_MoveTip')");
-            }
-            else
+            } else
                 oldTip = NULL;
-        }
+        } else
+            oldTip = NULL;
     } else {
         oldTip = NULL;
     }
