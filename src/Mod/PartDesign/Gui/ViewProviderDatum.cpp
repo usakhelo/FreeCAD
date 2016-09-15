@@ -55,8 +55,10 @@
 #include <App/Part.h>
 #include <App/DocumentObjectGroup.h>
 #include <App/GeoFeatureGroup.h>
+#include <App/Origin.h>
 #include <Gui/Control.h>
 #include <Gui/Command.h>
+#include <Gui/Document.h>
 #include <Gui/Application.h>
 #include <Gui/MDIView.h>
 #include <Gui/ViewProviderOrigin.h>
@@ -296,37 +298,25 @@ bool ViewProviderDatum::doubleClicked(void)
     }
     if (activeBody != NULL) {
         App::DocumentObject* newTip = nullptr;
-        const std::vector<App::DocumentObject*> depFeatures = pcDatum->getInList();
-        //set newtip to the base of the solid from the inlist, if found any
-        for (auto* depFeat : depFeatures) {
-            if (PartDesign::Body::isSolidFeature(depFeat)) {
-                auto baseFeat = static_cast<PartDesign::Feature*>(depFeat)->getBaseObject(/* silent = */ true);
-                if (baseFeat && PartDesign::Body::isSolidFeature(baseFeat)) {
-                    auto baseIt = std::find(depFeatures.begin(), depFeatures.end(), baseFeat);
-                    if (baseIt == depFeatures.end()) {
-                        newTip = baseFeat;
-                        break;
-                    }
+        Gui::Document* guiDoc = Gui::Application::Instance->activeDocument();
+        std::set<App::DocumentObject*> depSet;
+        getRecursiveInList(pcDatum, depSet);
+        for (auto* depFeat : depSet) {
+            if (!depFeat->getTypeId().isDerivedFrom(App::Origin::getClassTypeId()) &&
+                !depFeat->getTypeId().isDerivedFrom(App::Part::getClassTypeId()) &&
+                !depFeat->getTypeId().isDerivedFrom(PartDesign::Body::getClassTypeId())) {
+                //remember the first visible feature
+                if (guiDoc->isShow(depFeat->getNameInDocument())) {
+                    guiDoc->setHide(depFeat->getNameInDocument());
+                    oldTip = depFeat;
+                    break;
                 }
             }
         }
-        //if no features found in the InList try to use current support
-        if (!newTip) {
-            newTip = pcDatum->Support.getValue();
+        auto suppObj = pcDatum->Support.getValue();
+        if (suppObj && PartDesign::Body::isSolidFeature(suppObj)) {
+            guiDoc->setShow(suppObj->getNameInDocument());
         }
-
-        if (newTip && PartDesign::Body::isSolidFeature(newTip)) {
-            oldTip = activeBody->Tip.getValue();
-            if (oldTip != newTip) {
-                Gui::Selection().clearSelection();
-                Gui::Selection().addSelection(newTip->getDocument()->getName(), newTip->getNameInDocument());
-                Gui::Command::doCommand(Gui::Command::Gui, "FreeCADGui.runCommand('PartDesign_MoveTip')");
-            } else
-                oldTip = NULL;
-        } else
-            oldTip = NULL;
-    } else {
-        oldTip = NULL;
     }
 
     Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().setEdit('%s',0)",this->pcObject->getNameInDocument());
@@ -344,15 +334,10 @@ void ViewProviderDatum::unsetEdit(int ModNum)
         PartDesign::Body* activeBody = Gui::Application::Instance->activeView()->getActiveObject<PartDesign::Body*>(PDBODYKEY);
 
         if ((activeBody != NULL) && (oldTip != NULL)) {
-            if (oldTip != activeBody->Tip.getValue()) {
-                Gui::Selection().clearSelection();
-                Gui::Selection().addSelection(oldTip->getDocument()->getName(), oldTip->getNameInDocument());
-                Gui::Command::doCommand(Gui::Command::Gui,"FreeCADGui.runCommand('PartDesign_MoveTip')");
-                oldTip = NULL;
-            }
-        } else {
-            oldTip = NULL;
+            Gui::Document* guiDoc = Gui::Application::Instance->activeDocument();
+            guiDoc->setShow(oldTip->getNameInDocument());
         }
+        oldTip = NULL;
     }
     else {
         Gui::ViewProviderGeometryObject::unsetEdit(ModNum);

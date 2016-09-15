@@ -485,5 +485,18 @@ void relinkToOrigin(App::DocumentObject* feat, PartDesign::Body* targetbody)
         }
     }
 }
-
+// recursive helper function to get all dependencies
+void getRecursiveInList(const App::DocumentObject* obj, std::set<App::DocumentObject*>& out)
+{
+    //get intlist of the obj
+    //iterate through it and add objs to out set
+    //for each obj make recursive call until inlist is empty
+    std::vector<App::DocumentObject*> inList = obj->getInList();
+    for (auto inObj : inList) {
+        out.insert(inObj);
+        if (!inObj->getInList().empty()){
+            getRecursiveInList(inObj, out);
+        }
+    }
+}
 } /* PartDesignGui */

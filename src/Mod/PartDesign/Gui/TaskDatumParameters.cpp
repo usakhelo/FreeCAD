@@ -357,7 +357,13 @@ void TaskDatumParameters::onSelectionChanged(const Gui::SelectionChanges& msg)
         std::vector<App::DocumentObject*> refs = pcDatum->Support.getValues();
         std::vector<std::string> refnames = pcDatum->Support.getSubValues();
         App::DocumentObject* selObj = pcDatum->getDocument()->getObject(msg.pObjectName);
-        if (selObj == pcDatum) return;//prevent self-referencing
+        if (selObj == pcDatum) //prevent self-referencing
+            return;
+        //prevent circular dependency
+        if (!DatumView->getObject()->testIfLinkDAGCompatible(selObj)) {
+            return;
+        }
+
         std::string subname = msg.pSubName;
 
         // Remove subname for planes and datum features

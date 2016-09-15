@@ -70,7 +70,8 @@ bool isFeatureMovable(App::DocumentObject* feature);
 std::vector<App::DocumentObject*> collectMovableDependencies(std::vector<App::DocumentObject*>& features);
 /// Relink sketches and datums to target body's origin
 void relinkToOrigin(App::DocumentObject* feature, PartDesign::Body* body);
-
+/// Recursevly collect all the dependents of the given object
+void getRecursiveInList(const App::DocumentObject* obj, std::set<App::DocumentObject*>& out);
 } /* PartDesignGui */
 
 #endif /* end of include guard: UTILS_H_CS5LK2ZQ */
