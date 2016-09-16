@@ -493,9 +493,11 @@ void getRecursiveInList(const App::DocumentObject* obj, std::set<App::DocumentOb
     //for each obj make recursive call until inlist is empty
     std::vector<App::DocumentObject*> inList = obj->getInList();
     for (auto inObj : inList) {
-        out.insert(inObj);
-        if (!inObj->getInList().empty()){
-            getRecursiveInList(inObj, out);
+        auto result = out.insert(inObj);
+        if (result.second) {
+            if (!inObj->getInList().empty()) {
+                getRecursiveInList(inObj, out);
+            }
         }
     }
 }
