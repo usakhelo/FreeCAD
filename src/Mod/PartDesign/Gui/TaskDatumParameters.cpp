@@ -222,6 +222,8 @@ TaskDatumParameters::TaskDatumParameters(ViewProviderDatum *DatumView,QWidget *p
 
     DatumView->setPickable(false);
 
+    Gui::Selection().addSelectionGate(new NoCircularDepSelection(DatumView->getObject(), true, true, true));
+
     // connect object deletion with slot
     auto bnd = boost::bind(&TaskDatumParameters::objectDeleted, this, _1);
     Gui::Document* document = Gui::Application::Instance->getDocument(DatumView->getObject()->getDocument());
@@ -230,6 +232,8 @@ TaskDatumParameters::TaskDatumParameters(ViewProviderDatum *DatumView,QWidget *p
 
 TaskDatumParameters::~TaskDatumParameters()
 {
+    Gui::Selection().rmvSelectionGate();
+
     connectDelObject.disconnect();
     if (DatumView)
         resetViewMode();
@@ -359,11 +363,7 @@ void TaskDatumParameters::onSelectionChanged(const Gui::SelectionChanges& msg)
         App::DocumentObject* selObj = pcDatum->getDocument()->getObject(msg.pObjectName);
         if (selObj == pcDatum) //prevent self-referencing
             return;
-        //prevent circular dependency
-        if (!DatumView->getObject()->testIfLinkDAGCompatible(selObj)) {
-            return;
-        }
-
+        
         std::string subname = msg.pSubName;
 
         // Remove subname for planes and datum features

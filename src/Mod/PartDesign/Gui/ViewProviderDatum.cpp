@@ -74,6 +74,7 @@
 
 #include "TaskDatumParameters.h"
 #include "ViewProviderBody.h"
+#include "ReferenceSelection.h"
 #include "Utils.h"
 
 #include "ViewProviderDatum.h"
@@ -258,7 +259,6 @@ bool ViewProviderDatum::setEdit(int ModNum)
         // clear the selection (convenience)
         Gui::Selection().clearSelection();
 
-        // always change to PartDesign WB, remember where we come from
         oldWb = Gui::Command::assureWorkbench("PartDesignWorkbench");
 
         // start the edit dialog
@@ -284,9 +284,10 @@ bool ViewProviderDatum::doubleClicked(void)
     PartDesign::Body* activeBody = getActiveView()->getActiveObject<PartDesign::Body*>(PDBODYKEY);
     auto datumBody = PartDesignGui::getBodyFor(pcDatum, false);
     
+    // always change to PartDesign WB, remember where we come from
+    oldWb = Gui::Command::assureWorkbench("PartDesignWorkbench");
     if (datumBody != NULL) {
         if (datumBody != activeBody) {
-            Gui::Command::assureWorkbench("PartDesignWorkbench");
             Gui::Command::doCommand(Gui::Command::Gui,
                 "Gui.getDocument('%s').ActiveView.setActiveObject('%s', App.getDocument('%s').getObject('%s'))",
                 datumBody->getDocument()->getName(),
@@ -301,16 +302,17 @@ bool ViewProviderDatum::doubleClicked(void)
         Gui::Document* guiDoc = Gui::Application::Instance->activeDocument();
         std::set<App::DocumentObject*> depSet;
         getRecursiveInList(pcDatum, depSet);
+        oldTip = NULL;
         for (auto* depFeat : depSet) {
             if (!depFeat->getTypeId().isDerivedFrom(App::Origin::getClassTypeId()) &&
                 !depFeat->getTypeId().isDerivedFrom(App::Part::getClassTypeId()) &&
                 !depFeat->getTypeId().isDerivedFrom(PartDesign::Body::getClassTypeId())) {
-                //remember the first visible feature
-                if (guiDoc->isShow(depFeat->getNameInDocument())) {
-                    guiDoc->setHide(depFeat->getNameInDocument());
+                //remember the first visible solid feature (presumably tip?)
+                if ((oldTip == NULL) && guiDoc->isShow(depFeat->getNameInDocument()) && PartDesign::Body::isSolidFeature(depFeat)) {
                     oldTip = depFeat;
-                    break;
                 }
+                static_cast<PartDesignGui::ViewProvider*>(Gui::Application::Instance->getViewProvider(depFeat))->makeTemporaryVisible(false);
+                guiDoc->setHide(depFeat->getNameInDocument());
             }
         }
         auto suppObj = pcDatum->Support.getValue();

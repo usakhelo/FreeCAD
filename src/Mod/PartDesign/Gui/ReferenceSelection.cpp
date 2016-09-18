@@ -169,6 +169,18 @@ bool ReferenceSelection::allow(App::Document* pDoc, App::DocumentObject* pObj, c
     return false;
 }
 
+bool NoCircularDepSelection::allow(App::Document* pDoc, App::DocumentObject* pObj, const char* sSubName)
+{
+    if (!support->testIfLinkDAGCompatible(pObj)) {
+        this->notAllowedReason = QT_TR_NOOP("Linking this will cause circular dependency.");
+        return false;
+    }
+
+    auto refSelObj = ReferenceSelection(support, edge, plane, planar, point);
+    return refSelObj.allow(pDoc, pObj, sSubName);
+}
+
+
 namespace PartDesignGui
 {
 

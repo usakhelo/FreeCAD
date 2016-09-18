@@ -54,6 +54,31 @@ public:
     bool allow(App::Document* pDoc, App::DocumentObject* pObj, const char* sSubName);
 };
 
+class NoCircularDepSelection : public Gui::SelectionFilterGate
+{
+    const App::DocumentObject* support;
+    // If set to true, allow picking edges or planes or both
+    bool edge, plane;
+    // If set to true, allow only linear edges and planar faces
+    bool planar;
+    // If set to true, allow picking datum points
+    bool point;
+    // If set to true, allow picking objects from another body in the same part
+    bool allowOtherBody;
+
+public:
+    NoCircularDepSelection(const App::DocumentObject* support_,
+        const bool edge_, const bool plane_, const bool planar_, const bool point_ = false)
+        : Gui::SelectionFilterGate((Gui::SelectionFilter*)0),
+        support(support_), edge(edge_), plane(plane_), planar(planar_), point(point_), allowOtherBody(true)
+    {
+    }
+    /**
+    * Allow the user to pick only objects wich are not in their getDependencyList
+    */
+    bool allow(App::Document* pDoc, App::DocumentObject* pObj, const char* sSubName);
+};
+
 // Convenience methods
 /// Extract reference from Selection
 void getReferencedSelection(const App::DocumentObject* thisObj, const Gui::SelectionChanges& msg,
