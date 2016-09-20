@@ -34,6 +34,7 @@
 #endif
 
 #include <Base/Console.h>
+#include <Base/Interpreter.h>
 #include <ui_DlgReference.h>
 #include <App/Application.h>
 #include <App/Document.h>
@@ -53,6 +54,8 @@
 #include <Mod/Part/App/PrimitiveFeature.h>
 #include <Mod/Part/App/DatumFeature.h>
 #include <Mod/PartDesign/App/Body.h>
+#include <Mod/PartDesign/App/DatumCS.h>
+#include <Mod/PartDesign/App/FeaturePrimitive.h>
 #include <Mod/Part/Gui/AttacherTexts.h>
 
 #include "ReferenceSelection.h"
@@ -202,6 +205,7 @@ TaskDatumParameters::TaskDatumParameters(ViewProviderDatum *DatumView,QWidget *p
     ui->superplacementX->bind(App::ObjectIdentifier::parse(pcDatum,std::string("superPlacement.Base.x")));
     ui->superplacementY->bind(App::ObjectIdentifier::parse(pcDatum,std::string("superPlacement.Base.y")));
     ui->superplacementZ->bind(App::ObjectIdentifier::parse(pcDatum,std::string("superPlacement.Base.z")));
+    visibilityAutomation(true);
     updateSuperplacementUI();
     updateReferencesUI();
     updateListOfModes(eMapMode(pcDatum->MapMode.getValue()));
@@ -222,7 +226,7 @@ TaskDatumParameters::TaskDatumParameters(ViewProviderDatum *DatumView,QWidget *p
 
     DatumView->setPickable(false);
 
-    Gui::Selection().addSelectionGate(new NoCircularDepSelection(DatumView->getObject(), true, true, true));
+    Gui::Selection().addSelectionGate(new NoDependentsSelection(DatumView->getObject(), true, true, true));
 
     // connect object deletion with slot
     auto bnd = boost::bind(&TaskDatumParameters::objectDeleted, this, _1);
@@ -232,6 +236,7 @@ TaskDatumParameters::TaskDatumParameters(ViewProviderDatum *DatumView,QWidget *p
 
 TaskDatumParameters::~TaskDatumParameters()
 {
+    visibilityAutomation(false);
     Gui::Selection().rmvSelectionGate();
 
     connectDelObject.disconnect();
@@ -361,8 +366,7 @@ void TaskDatumParameters::onSelectionChanged(const Gui::SelectionChanges& msg)
         std::vector<App::DocumentObject*> refs = pcDatum->Support.getValues();
         std::vector<std::string> refnames = pcDatum->Support.getSubValues();
         App::DocumentObject* selObj = pcDatum->getDocument()->getObject(msg.pObjectName);
-        if (selObj == pcDatum) //prevent self-referencing
-            return;
+        if (selObj == pcDatum) return; //prevent self-referencing
         
         std::string subname = msg.pSubName;
 
@@ -846,7 +850,7 @@ void TaskDatumParameters::onRefName4(const QString &text)
 }
 
 
-bool   TaskDatumParameters::getFlip() const
+bool TaskDatumParameters::getFlip() const
 {
     return ui->checkBoxFlip->isChecked();
 }
@@ -884,6 +888,48 @@ void TaskDatumParameters::changeEvent(QEvent *e)
         ui->lineRef3->blockSignals(false);
         ui->buttonRef4->blockSignals(false);
         ui->lineRef4->blockSignals(false);
+    }
+}
+
+void TaskDatumParameters::visibilityAutomation(bool opening_not_closing)
+{
+    if (opening_not_closing){
+                //crash guards
+        if (!DatumView)
+            return;
+        if (!DatumView->getObject())
+            return;
+        if (!DatumView->getObject()->getNameInDocument())
+            return;
+        try{
+            QString code = QString::fromLatin1(
+                "import TempoVis\n"
+                "tv = TempoVis.TempoVis(App.ActiveDocument)\n"
+                "tv.hide_all_dependent(%1)\n"
+                "visible_feats = []\n"
+                "if len(%1.Support) > 0:\n"
+                "\tvisible_feats = visible_feats + [lnk[0] for lnk in %1.Support]\n"
+                "if %1.isDerivedFrom('PartDesign::CoordinateSystem'):\n"
+                "\tvisible_feats = visible_feats + [feat for feat in %1.InList if feat.isDerivedFrom('PartDesign::FeaturePrimitive')]\n"
+                "tv.show(visible_feats)"
+                );
+            QByteArray code_2 = code.arg(
+                QString::fromLatin1("App.ActiveDocument.") +
+                QString::fromLatin1(DatumView->getObject()->getNameInDocument())
+                ).toLatin1();
+                Base::Interpreter().runString(code_2.constData());
+        }
+        catch (Base::PyException &e){
+            e.ReportException();
+        }
+    }
+    else {
+        try {
+            Base::Interpreter().runString("del(tv)");
+        }
+        catch (Base::PyException &e) {
+            e.ReportException();
+        }
     }
 }
 
@@ -1004,7 +1050,6 @@ bool TaskDlgDatumParameters::accept()
         Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.recompute()");
         if (!DatumView->getObject()->isValid())
             throw Base::Exception(DatumView->getObject()->getStatusString());
-        parameter->blockConnection(true);
         Gui::Command::doCommand(Gui::Command::Gui, "Gui.activeDocument().resetEdit()");
         Gui::Command::commitCommand();
 
@@ -1028,7 +1073,6 @@ bool TaskDlgDatumParameters::reject()
 {
     // roll back the done things
     Gui::Command::abortCommand();
-    parameter->blockConnection(true);
     Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().resetEdit()");
     Gui::Command::doCommand(Gui::Command::Doc,"App.ActiveDocument.recompute()");
     return true;

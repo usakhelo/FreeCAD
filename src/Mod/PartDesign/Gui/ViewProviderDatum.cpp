@@ -295,32 +295,7 @@ bool ViewProviderDatum::doubleClicked(void)
                 datumBody->getDocument()->getName(),
                 datumBody->getNameInDocument());
         }
-        activeBody = datumBody;
     }
-    if (activeBody != NULL) {
-        App::DocumentObject* newTip = nullptr;
-        Gui::Document* guiDoc = Gui::Application::Instance->activeDocument();
-        std::set<App::DocumentObject*> depSet;
-        getRecursiveInList(pcDatum, depSet);
-        oldTip = NULL;
-        for (auto* depFeat : depSet) {
-            if (!depFeat->getTypeId().isDerivedFrom(App::Origin::getClassTypeId()) &&
-                !depFeat->getTypeId().isDerivedFrom(App::Part::getClassTypeId()) &&
-                !depFeat->getTypeId().isDerivedFrom(PartDesign::Body::getClassTypeId())) {
-                //remember the first visible solid feature (presumably tip?)
-                if ((oldTip == NULL) && guiDoc->isShow(depFeat->getNameInDocument()) && PartDesign::Body::isSolidFeature(depFeat)) {
-                    oldTip = depFeat;
-                }
-                static_cast<PartDesignGui::ViewProvider*>(Gui::Application::Instance->getViewProvider(depFeat))->makeTemporaryVisible(false);
-                guiDoc->setHide(depFeat->getNameInDocument());
-            }
-        }
-        auto suppObj = pcDatum->Support.getValue();
-        if (suppObj && PartDesign::Body::isSolidFeature(suppObj)) {
-            guiDoc->setShow(suppObj->getNameInDocument());
-        }
-    }
-
     Gui::Command::doCommand(Gui::Command::Gui,"Gui.activeDocument().setEdit('%s',0)",this->pcObject->getNameInDocument());
     return true;
 }
@@ -333,13 +308,6 @@ void ViewProviderDatum::unsetEdit(int ModNum)
     if (ModNum == ViewProvider::Default) {
         // when pressing ESC make sure to close the dialog
         Gui::Control().closeDialog();
-        PartDesign::Body* activeBody = Gui::Application::Instance->activeView()->getActiveObject<PartDesign::Body*>(PDBODYKEY);
-
-        if ((activeBody != NULL) && (oldTip != NULL)) {
-            Gui::Document* guiDoc = Gui::Application::Instance->activeDocument();
-            guiDoc->setShow(oldTip->getNameInDocument());
-        }
-        oldTip = NULL;
     }
     else {
         Gui::ViewProviderGeometryObject::unsetEdit(ModNum);

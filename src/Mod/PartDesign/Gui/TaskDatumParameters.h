@@ -83,6 +83,7 @@ private Q_SLOTS:
     void onButtonRef3(const bool checked = true);
     void onButtonRef4(const bool checked = true);
     void onModeSelect(void);
+    void visibilityAutomation(bool opening_not_closing);
 
 protected:
     void changeEvent(QEvent *e);
