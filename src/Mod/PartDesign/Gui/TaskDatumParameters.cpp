@@ -904,14 +904,16 @@ void TaskDatumParameters::visibilityAutomation(bool opening_not_closing)
         try{
             QString code = QString::fromLatin1(
                 "import TempoVis\n"
+                "from Show.DepGraphTools import getAllDependent, isContainer\n"
                 "tv = TempoVis.TempoVis(App.ActiveDocument)\n"
-                "tv.hide_all_dependent(%1)\n"
-                "visible_feats = []\n"
-                "if len(%1.Support) > 0:\n"
-                "\tvisible_feats = visible_feats + [lnk[0] for lnk in %1.Support]\n"
+                "dep_features = [o for o in getAllDependent(%1) if not isContainer(o)]\n"
                 "if %1.isDerivedFrom('PartDesign::CoordinateSystem'):\n"
-                "\tvisible_feats = visible_feats + [feat for feat in %1.InList if feat.isDerivedFrom('PartDesign::FeaturePrimitive')]\n"
-                "tv.show(visible_feats)"
+                "\tvisible_features = [feat for feat in %1.InList if feat.isDerivedFrom('PartDesign::FeaturePrimitive')]\n"
+                "\tdep_features = [feat for feat in dep_features if feat not in visible_features]\n"
+                "tv.hide(dep_features)\n"
+                "if not %1.isDerivedFrom('PartDesign::CoordinateSystem'):\n"
+                "\t\tif len(%1.Support) > 0:\n"
+                "\t\t\ttv.show([lnk[0] for lnk in %1.Support])"
                 );
             QByteArray code_2 = code.arg(
                 QString::fromLatin1("App.ActiveDocument.") +
