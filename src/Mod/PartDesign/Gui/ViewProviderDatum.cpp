@@ -52,13 +52,10 @@
 # include <GeomAPI_IntCS.hxx>
 #endif
 
-#include <App/Part.h>
 #include <App/DocumentObjectGroup.h>
 #include <App/GeoFeatureGroup.h>
-#include <App/Origin.h>
 #include <Gui/Control.h>
 #include <Gui/Command.h>
-#include <Gui/Document.h>
 #include <Gui/Application.h>
 #include <Gui/MDIView.h>
 #include <Gui/ViewProviderOrigin.h>
@@ -70,11 +67,9 @@
 #include <Mod/PartDesign/App/DatumPlane.h>
 #include <Mod/PartDesign/App/Body.h>
 #include <Mod/PartDesign/App/DatumCS.h>
-#include <Mod/PartDesign/App/Feature.h>
 
 #include "TaskDatumParameters.h"
 #include "ViewProviderBody.h"
-#include "ReferenceSelection.h"
 #include "Utils.h"
 
 #include "ViewProviderDatum.h"

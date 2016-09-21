@@ -51,10 +51,8 @@
 #include <Gui/Selection.h>
 #include <Gui/Command.h>
 #include <Gui/ViewProviderOrigin.h>
-#include <Mod/Part/App/PrimitiveFeature.h>
 #include <Mod/Part/App/DatumFeature.h>
 #include <Mod/PartDesign/App/Body.h>
-#include <Mod/PartDesign/App/DatumCS.h>
 #include <Mod/PartDesign/App/FeaturePrimitive.h>
 #include <Mod/Part/Gui/AttacherTexts.h>
 
@@ -366,7 +364,7 @@ void TaskDatumParameters::onSelectionChanged(const Gui::SelectionChanges& msg)
         std::vector<App::DocumentObject*> refs = pcDatum->Support.getValues();
         std::vector<std::string> refnames = pcDatum->Support.getSubValues();
         App::DocumentObject* selObj = pcDatum->getDocument()->getObject(msg.pObjectName);
-        if (selObj == pcDatum) return; //prevent self-referencing
+        if (selObj == pcDatum) return;//prevent self-referencing
         
         std::string subname = msg.pSubName;
 
