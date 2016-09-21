@@ -53,7 +53,6 @@
 #include <Gui/ViewProviderOrigin.h>
 #include <Mod/Part/App/DatumFeature.h>
 #include <Mod/PartDesign/App/Body.h>
-#include <Mod/PartDesign/App/FeaturePrimitive.h>
 #include <Mod/Part/Gui/AttacherTexts.h>
 
 #include "ReferenceSelection.h"
