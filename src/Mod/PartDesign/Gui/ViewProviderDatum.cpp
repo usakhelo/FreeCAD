@@ -284,8 +284,6 @@ bool ViewProviderDatum::doubleClicked(void)
     PartDesign::Body* activeBody = getActiveView()->getActiveObject<PartDesign::Body*>(PDBODYKEY);
     auto datumBody = PartDesignGui::getBodyFor(pcDatum, false);
     
-    // always change to PartDesign WB, remember where we come from
-    oldWb = Gui::Command::assureWorkbench("PartDesignWorkbench");
     if (datumBody != NULL) {
         if (datumBody != activeBody) {
             Gui::Command::doCommand(Gui::Command::Gui,
