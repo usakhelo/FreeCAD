@@ -50,6 +50,7 @@
 #include "Document.h"
 #include "BitmapFactory.h"
 #include "ViewProviderDocumentObject.h"
+#include "ViewProviderDocumentObjectGroup.h"
 #include "MenuManager.h"
 #include "Application.h"
 #include "MainWindow.h"
@@ -634,6 +635,10 @@ void TreeWidget::dropEvent(QDropEvent *event)
                 Gui::ViewProvider* vpp = static_cast<DocumentObjectItem *>(parent)->object();
                 vpp->dragObject(obj);
             }
+
+            Gui::Command::doCommand(Gui::Command::Doc, "App.getDocument(\"%s\").addObject(""App.getDocument(\"%s\").getObject(\"%s\"))",
+              doc->getName(), doc->getName(), obj->getNameInDocument());
+            //doc->addObject(obj);
         }
         gui->commitCommand();
     }
