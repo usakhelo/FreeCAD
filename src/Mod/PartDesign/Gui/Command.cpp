@@ -714,6 +714,12 @@ void prepareProfileBased(Gui::Command* cmd, const std::string& which,
         if (!feature || !feature->isDerivedFrom(Part::Feature::getClassTypeId()))
             return;
 
+        if (!feature->isDerivedFrom(Part::Part2DObject::getClassTypeId())) {
+            QMessageBox::warning(Gui::getMainWindow(), QObject::tr("Warning"),
+                QObject::tr("Selected feature is not a Sketch or Part2DObject."));
+            return;
+        }
+
         // Related to #0002760: when an operation can't be performed due to a broken
         // profile then make sure that it is recomputed when cancelling the operation
         // otherwise it might be impossible to see that it's broken.
@@ -730,10 +736,6 @@ void prepareProfileBased(Gui::Command* cmd, const std::string& which,
             Gui::Command::doCommand(Gui::Command::Doc,"App.activeDocument().%s.Profile = App.activeDocument().%s",
                         FeatName.c_str(), feature->getNameInDocument());
         }
-        else {
-            Gui::Command::doCommand(Gui::Command::Doc,"App.activeDocument().%s.Profile = (App.activeDocument().%s, [\"%s\"])",
-                        FeatName.c_str(), feature->getNameInDocument(), sub.c_str());   
-        }         
 
         func(static_cast<Part::Feature*>(feature), FeatName);
     };
