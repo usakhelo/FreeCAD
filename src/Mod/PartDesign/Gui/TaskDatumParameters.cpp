@@ -181,6 +181,9 @@ bool TaskDlgDatumParameters::accept() {
             pcActivePart->addObject(obj);
     }
     
+    Gui::Selection().rmvSelectionGate();
+    static_cast<ViewProviderDatum*>(ViewProvider)->setPickable(true);
+
     return true;
 }
 
